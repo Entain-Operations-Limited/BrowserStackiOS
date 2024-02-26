@@ -1258,9 +1258,9 @@ static PGMobConnectionManager *sManager = nil;
 //    socket = [[PGMobSocket alloc] init];
 	[socket setDomainID:domainID];
 	
-	[socket setServerIP:@"real.partygaming.com.e7new.com"];
+	[socket setServerIP:@"www.example.org"];
     NSString *portString = [self getDomainPort:domainID];
-	[socket setServerPort:@"2147"];
+	[socket setServerPort:@"80"];
     [socket setDelegate:self];
     BOOL success = [socket connect:proxyHost proxyPort:proxyPort];
 
