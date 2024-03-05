@@ -12,6 +12,104 @@
 
 @end
 
+
+@interface StreamDelegate : NSObject <NSStreamDelegate>
+@end
+
+@implementation StreamDelegate
+
+- (NSString *)eventNameForEventCode:(NSStreamEvent)eventCode {
+    switch (eventCode) {
+        case NSStreamEventNone:
+            return @"NSStreamEventNone";
+        case NSStreamEventOpenCompleted:
+            return @"NSStreamEventOpenCompleted";
+        case NSStreamEventHasBytesAvailable:
+            return @"NSStreamEventHasBytesAvailable";
+        case NSStreamEventHasSpaceAvailable:
+            return @"NSStreamEventHasSpaceAvailable";
+        case NSStreamEventErrorOccurred:
+            return @"NSStreamEventErrorOccurred";
+        case NSStreamEventEndEncountered:
+            return @"NSStreamEventEndEncountered";
+        default:
+            return @"UnknownEvent";
+    }
+}
+
+- (NSString *)streamType:(NSStream *)stream {
+    if ([stream isKindOfClass:[NSOutputStream class]]) {
+        return @"OuputStream";
+    } else {
+        return @"InputStream";
+    }
+}
+
+- (void)stream:(NSStream *)stream handleEvent:(NSStreamEvent)eventCode {
+    NSString *eventName = [self eventNameForEventCode:eventCode];
+    NSString *streamType = [self streamType:stream];
+    NSLog(@"Stream event received: %@ for stream: %@", eventName, streamType);
+    
+    switch (eventCode) {
+        case NSStreamEventOpenCompleted:
+            NSLog(@"Stream opened");
+            break;
+        case NSStreamEventHasSpaceAvailable:
+            if ([stream isKindOfClass:[NSOutputStream class]]) {
+                NSLog(@"Sending HTTP request over stream");
+                // Handle writing data to outputStream when it has space available
+                NSOutputStream *outputStream = (NSOutputStream *)stream;
+                
+                // Prepare the HTTP request
+                NSString *requestString = @"GET http://www.example.org/ HTTP/1.1\r\nHost: www.example.org\r\n\r\n";
+                const uint8_t *requestData = (const uint8_t *)[requestString UTF8String];
+                NSInteger bytesWritten = [outputStream write:requestData maxLength:strlen((const char *)requestData)];
+                
+                if (bytesWritten == -1) {
+                    NSLog(@"Error writing to output stream");
+                } else {
+                    NSLog(@"HTTP request sent");
+                }
+                
+                [outputStream close];
+                [outputStream removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+            } else {
+                NSLog(@"Unknown class in space available");
+            }
+            break;
+        case NSStreamEventHasBytesAvailable:
+            if ([stream isKindOfClass:[NSInputStream class]]) {
+                NSLog(@"Reading HTTP response over stream");
+                // Handle reading response data from inputStream
+                NSInputStream *inputStream = (NSInputStream *)stream;
+                
+                uint8_t buffer[1024];
+                NSInteger bytesRead = [inputStream read:buffer maxLength:sizeof(buffer)];
+                if (bytesRead > 0) {
+                    NSData *responseData = [NSData dataWithBytes:buffer length:bytesRead];
+                    NSString *responseString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+                    NSLog(@"Response received: %@", responseString);
+                } else if (bytesRead == 0) {
+                    NSLog(@"No more data available in the response");
+                } else {
+                    NSLog(@"Error reading from input stream");
+                }
+            }
+            break;
+        case NSStreamEventErrorOccurred:
+            NSLog(@"Stream error occurred");
+            break;
+        case NSStreamEventEndEncountered:
+            NSLog(@"Stream end encountered");
+            break;
+        default:
+            break;
+    }
+}
+
+@end
+
+
 @implementation ViewController
 
 - (void)viewDidLoad {
@@ -91,8 +189,11 @@
             [self log:proxyPortString];
             
             // UPDATE THIS to POKER URL
-            NSString *host = @"real.partygaming.com.e7new.com";
-            UInt32 port = 2147;
+            //            NSString *host = @"real.partygaming.com.e7new.com";
+            //            UInt32 port = 2147;
+            
+            NSString *host = @"www.example.org";
+            UInt32 port = 80;
             
             [self createPokerServerSocketViaProxy:host port:port proxyHost:proxyHost proxyPort:proxyPort];
             
@@ -109,17 +210,18 @@
     //    NSOutputStream *outputStream = nil;
     //
     [self log:@"BrowserStackLog : Creating Socket"];
-        [self log:@"BrowserStackLog : Opened Streams"];
-        
-        // Now, call the method to send the actual HTTP request
-        BOOL privoxy_tunnel_established = [self configurePrivoxyToConnectToPokerServers:pokerHost port:pokerPort proxyHost:proxyHost proxyPort:proxyPort];
-        
-        if (privoxy_tunnel_established) {
-            [self log:@"BrowserStackLog : Creating poker server socket"];
-            [self createPokerServerSocket:proxyHost proxyPort:proxyPort];
-        } else {
-            [self log:@"BrowserStackLog : Cannot proceed, no tunnel established"];
-        }
+    [self log:@"BrowserStackLog : Opened Streams"];
+    
+    // Now, call the method to send the actual HTTP request
+    BOOL privoxy_tunnel_established = [self configurePrivoxyToConnectToPokerServers:pokerHost port:pokerPort proxyHost:proxyHost proxyPort:proxyPort];
+    
+    if (privoxy_tunnel_established) {
+        [self log:@"BrowserStackLog : Creating poker server socket"];
+        // [self createPokerServerSocket:proxyHost proxyPort:proxyPort];
+        [self sendRequestViaProxy:proxyHost proxyPort:proxyPort];
+    } else {
+        [self log:@"BrowserStackLog : Cannot proceed, no tunnel established"];
+    }
 }
 
 
@@ -185,7 +287,7 @@
         }
         
     }
-
+    
     return false;
 }
 
@@ -283,5 +385,33 @@
     [connectionBootstrapper initiateConnection:@"real.partygaming.com.e7new.com" proxyHost:proxyHost proxyPort:proxyPort];
 }
 
+// Identical signature as createPokerServerSocket
+-(void)sendRequestViaProxy:(NSString *)proxyHost proxyPort:(UInt32)proxyPort {
+    NSLog(@"In sendRequestViaProxy...");
+    
+    CFReadStreamRef readStream;
+    CFWriteStreamRef writeStream;
+    
+    NSInputStream *inputStream;
+    NSOutputStream *outputStream;
+    CFStreamCreatePairWithSocketToCFHost(NULL,CFHostCreateWithName(NULL, (CFStringRef)proxyHost), proxyPort, &readStream, &writeStream);
+    
+    inputStream = (__bridge NSInputStream *)readStream;
+    outputStream = (__bridge NSOutputStream *)writeStream;
+    
+    
+    StreamDelegate *streamDelegate = [[StreamDelegate alloc] init];
+    [inputStream setDelegate:streamDelegate];
+    [outputStream setDelegate:streamDelegate];
+    
+    [inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    [outputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    
+    [inputStream open];
+    [outputStream open];
+    
+}
 @end
+
+
 
