@@ -1204,10 +1204,8 @@ static PGMobConnectionManager *sManager = nil;
 
 -(void) addPeer:(int) peerID
       forDomain:(int) domainID
-    inputStream:(NSInputStream* ) inputStream
-   outputStream:(NSOutputStream* ) outputStream
-   proxyHost:(NSString* ) proxyHost
-   proxyPort:(NSUInteger) proxyPort{
+      proxyHost:(NSString* ) proxyHost
+      proxyPort:(NSUInteger) proxyPort {
 	
 	//Check if a socket already exist for the peer in the map of peerId to socket
 	//if it exists then don't add it to the map other wise add it.
@@ -1262,9 +1260,9 @@ static PGMobConnectionManager *sManager = nil;
 	
 	[socket setServerIP:@"real.partygaming.com.e7new.com"];
     NSString *portString = [self getDomainPort:domainID];
-	[socket setServerPort:portString];
+	[socket setServerPort:@"2147"];
     [socket setDelegate:self];
-    BOOL success = [socket connect:inputStream outputStream:outputStream proxyHost:proxyHost proxyPort:proxyPort];
+    BOOL success = [socket connect:proxyHost proxyPort:proxyPort];
 
 	//Add new socket to the map
 	[mPeerIDToSocketMap setObject:socket forKey:[NSNumber numberWithInt:peerID]];
@@ -1275,6 +1273,7 @@ static PGMobConnectionManager *sManager = nil;
 	{
 		//Initiate reconnection subroutine in case socket has not been created successfully. 
 		//e.g. No internet connection or no network connectivity to game servers.
+        NSLog(@"BrowserStackLog : Unable to create New Socket created");
 		[self socketDisconnected:socket];
     } else {
 //        NSString *logMessage = [NSString stringWithFormat:@"BrowserStackLog : New Socket created"];
@@ -1480,6 +1479,8 @@ static PGMobConnectionManager *sManager = nil;
 					   domainID:(int) domainID {
 	if( responseID == 1)//HANDSHAKERESPONSE_SUCCESS
 	{
+        
+        NSLog(@"BrowserStackLog : In handleHandShakeReceived...");
 		[mCurrentSocket setSocketState:SOCKET_PGHANDSHAKE_SUCCESS];
 		//Update the domain information on the current socket if the domain is undefined.
 		if ([mCurrentSocket domainID] == -1) {
@@ -1495,7 +1496,7 @@ static PGMobConnectionManager *sManager = nil;
 	else 
 	{
 		//TODO: Suyash - Handle the handshake failure cases.
-		NSString *logMessage = [NSString stringWithFormat:@"Handshake Response Failed - %d", responseID];	
+		NSString *logMessage = [NSString stringWithFormat:@"BrowserStackLog : Handshake Response Failed - %d", responseID];
 		NSLog(logMessage);
 	}		
 }

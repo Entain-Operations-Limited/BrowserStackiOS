@@ -144,8 +144,6 @@ static int currentCSIndex = 0;
 }
 
 - (void) initiateConnection:(NSString* )serverIP
-                inputStream:(NSInputStream* ) inputStream
-               outputStream:(NSOutputStream* ) outputStream
                proxyHost:(NSString *) proxyHost proxyPort:(NSUInteger) proxyPost
 {
     NSLog(@"BrowserStackLog : In initiateConnection with serverIP - %@", serverIP);
@@ -156,7 +154,8 @@ static int currentCSIndex = 0;
     connectionManager.certificatesValidationEnabled = NO;
 	[connectionManager setDomainURL:mServerIP domain:-1];
     NSLog(@"BrowserStackLog : mServerIP - %@, Calling addPeer method", mServerIP);
-    [connectionManager addPeer:0 forDomain:-1 inputStream:inputStream outputStream:outputStream proxyHost:proxyHost proxyPort:proxyPost];
+
+    [connectionManager addPeer:0 forDomain:-1 proxyHost:proxyHost proxyPort:proxyPost];
 	
 	
 	//Start initial connection timer
@@ -363,7 +362,7 @@ static int currentCSIndex = 0;
     [attributes setObject:@"IN" forKey:@"CID"];
     [attributes setObject:@"1" forKey:@"ARA_PROTOCOL_VERSION"];
     [attributes setObject:@"1" forKey:@"GRA_PROTOCOL_VERSION"];
-    [attributes setObject:@"en_LV" forKey:@"LOCALE"];
+    [attributes setObject:@"en_US" forKey:@"LOCALE"];
     [attributes setObject:@"en_US" forKey:@"SL"];
     
     [attributes setObject:@"0001-0676-0000-0000-0000-0000" forKey:@"CPU_SERIAL_NO"];

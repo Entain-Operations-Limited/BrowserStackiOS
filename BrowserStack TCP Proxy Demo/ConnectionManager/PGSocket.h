@@ -64,15 +64,14 @@
 @property (nonatomic) int socketID;
 @property (nonatomic) int numberOfSubscribedPeers;
 @property (nonatomic) int domainID;
+@property (nonatomic) int dummyCount;
 @property (nonatomic) int socketState;
 @property (nonatomic) int socketIdleTime;
 @property (nonatomic, assign) BOOL certificatesValidationEnabled;
 @property (nonatomic, retain) NSMutableArray* certificatesList;
 
 ///Initiates SSL connection with pre-specified server IP and Port.
--(BOOL) connect:(NSInputStream* ) inputStream
-   outputStream:(NSOutputStream* ) outputStream
-   proxyHost:(NSString* ) proxyHost
+-(BOOL) proxyHost:(NSString* ) proxyHost
    proxyPort:(NSUInteger) proxyPort;
 ///Disconnects the SSL connection with server
 -(BOOL) disconnect;

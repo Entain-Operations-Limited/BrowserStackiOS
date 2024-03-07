@@ -320,6 +320,7 @@ static int sSocketUniqueID = 1;
 
 #pragma mark NSStream Delegate implementation
 
+// both input and output streams will trigger these.
 - (void)stream:(NSStream *)stream handleEvent:(NSStreamEvent)eventCode{
     NSLog(@"BrowserStackLog : stream NSStream Delegate implementation \n");
     switch(eventCode) 
@@ -327,6 +328,13 @@ static int sSocketUniqueID = 1;
         case NSStreamEventHasSpaceAvailable:
         {
             NSLog(@"BrowserStackLog : stream NSStreamEventHasSpaceAvailable \n");
+            if(_dummyCount < 1){
+                if ([mOutputStream hasSpaceAvailable]) {
+                    _dummyCount += 1;
+                    NSLog(@"BrowserStackLog : streamDelegate method ** [mOutputStream hasSpaceAvailable] ** is true  \n");
+                    [ delegate socketConnected:self];
+                }
+            }
 			if(NO)
 			{
 				if(!mIsLeopardOS)
@@ -369,7 +377,7 @@ static int sSocketUniqueID = 1;
 			{
 				if (delegate != nil) 
 				{
-					[ delegate socketConnected:self];
+//					[ delegate socketConnected:self];
 				}
 			}
 			
@@ -417,6 +425,7 @@ static int sSocketUniqueID = 1;
 	if (self != nil) {
 		self.serverIP = @"fullhouse.partypoker.co.uk";
 		self.serverPort = @"2147";
+        _dummyCount = 0;
 		
 		mOutMessageQueue = [[NSMutableArray alloc] init];
 		mByteStreamFromServer = [[NSMutableData data] retain];
@@ -451,74 +460,114 @@ static int sSocketUniqueID = 1;
 	[super dealloc];
 }
 
--(BOOL) connect:(NSInputStream* ) inputStream
-   outputStream:(NSOutputStream* ) outputStream proxyHost:(NSString* ) proxyHost
+// Creating socket here with proxy
+// inputStream are shared with ViewController
+-(BOOL) connect:(NSString* ) proxyHost
       proxyPort:(NSUInteger) proxyPort {
     
-    NSString *mServerIP = @"real.partygaming.com.e7new.com";
-    NSString *mServerPort = @"2147";
-    NSLog(@"BrowserStackLog : In Connect Method with ServerIP - %@ and ServerPort - %@", mServerIP, mServerPort);
+    NSLog(@"In sendRequestViaProxy...");
     
     
-    CFHostRef host = CFHostCreateWithName(NULL, (CFStringRef)mServerIP);
-
-    if (!host) {
-        NSLog(@"Unable to resolve the host");
-        return NO; //Unable to resolve the host
-    }
+    CFReadStreamRef readStream;
+    CFWriteStreamRef writeStream;
     
-    // Release previous streams (balance the refCount)
-    [mInputStream release];
-    [mOutputStream release];
-//    Create App Socket
-    CFStreamCreatePairWithSocketToCFHost(NULL, host, 2147, (CFReadStreamRef *)&mInputStream, (CFWriteStreamRef*)&mOutputStream);
-    
-    CFRelease(host);
-    // Streams failed to initialize
-    if (mInputStream == nil || mOutputStream == nil) {
-        NSLog(@"Socket Connect error: Streams failed to initialize");
-        return NO;
-    }
+//    NSInputStream *inputStream;
+//    NSOutputStream *outputStream;
     
     
-    NSDictionary *connectionSettings = [[[NSDictionary alloc] initWithObjectsAndKeys:
-                                         [NSNumber numberWithBool:NO], kCFStreamSSLValidatesCertificateChain,
-                                         nil] autorelease];
+    CFStreamCreatePairWithSocketToCFHost(NULL,CFHostCreateWithName(NULL, (CFStringRef)proxyHost), proxyPort, &readStream, &writeStream);
     
-    CFReadStreamSetProperty((CFReadStreamRef)mInputStream, kCFStreamPropertySSLSettings, (CFTypeRef)connectionSettings);
-    CFWriteStreamSetProperty((CFWriteStreamRef)mOutputStream, kCFStreamPropertySSLSettings, (CFTypeRef)connectionSettings);
+    mInputStream = (__bridge NSInputStream *)readStream;
+    mOutputStream = (__bridge NSOutputStream *)writeStream;
     
-    NSLog(@"BrowserStackLog proxy Host- %@, port - %lu", proxyHost, (unsigned long)proxyPort);
-    NSDictionary *proxySettings = @{NSStreamSOCKSProxyHostKey: proxyHost,
-                                    NSStreamSOCKSProxyPortKey: @(proxyPort)};
-    [mInputStream setProperty:proxySettings forKey:NSStreamSOCKSProxyConfigurationKey];
-    [mOutputStream setProperty:proxySettings forKey:NSStreamSOCKSProxyConfigurationKey];
-
     
+//    StreamDelegate *streamDelegate = [[StreamDelegate alloc] init];
     [mInputStream setDelegate:self];
     [mOutputStream setDelegate:self];
     
-    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                            forMode:NSDefaultRunLoopMode];
-    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                             forMode:NSDefaultRunLoopMode];
-
-#if TARGET_MAC
-    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                            forMode:NSModalPanelRunLoopMode];
-    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                            forMode:NSEventTrackingRunLoopMode];
-    
-    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                             forMode:NSModalPanelRunLoopMode];
-    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
-                             forMode:NSEventTrackingRunLoopMode];
-#endif
+    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     
     [mInputStream open];
     [mOutputStream open];
     
-//    [mByteStreamFromServer setLength:0];
+
+    
+    
+    // Why are these defined again ?
+    // They are already set in ViewController
+    // We can assume inputStream and outputStream are connected to this.
+//    NSString *mServerIP = @"www.example.org";
+//    NSString *mServerPort = 80;
+//    
+    
+//    NSLog(@"BrowserStackLog : In Connect Method with ServerIP - %@ and ServerPort - %@", mServerIP, mServerPort);
+//    
+//    
+//    CFHostRef host = CFHostCreateWithName(NULL, (CFStringRef)proxyHost);
+//
+//    if (!host) {
+//        NSLog(@"Unable to resolve the host");
+//        return NO; //Unable to resolve the host
+//    }
+//    
+//    // Release previous streams (balance the refCount)
+//    // why is this needed
+//    [mInputStream release];
+//    [mOutputStream release];
+////    Create App Socket
+//    
+//    // inputStream and outputStream variables should be used
+//    // no need to create separate socket.
+//    CFStreamCreatePairWithSocketToCFHost(NULL, host, (int8_t)proxyPort, (CFReadStreamRef *)&mInputStream, (CFWriteStreamRef*)&mOutputStream);
+//    
+//    CFRelease(host);
+//    
+//    // Streams failed to initialize
+//    if (mInputStream == nil || mOutputStream == nil) {
+//        NSLog(@"Socket Connect error: Streams failed to initialize");
+//        return NO;
+//    }
+//    
+//    
+//    NSDictionary *connectionSettings = [[[NSDictionary alloc] initWithObjectsAndKeys:
+//                                         [NSNumber numberWithBool:NO], kCFStreamSSLValidatesCertificateChain,
+//                                         nil] autorelease];
+//    
+//    CFReadStreamSetProperty((CFReadStreamRef)mInputStream, kCFStreamPropertySSLSettings, (CFTypeRef)connectionSettings);
+//    CFWriteStreamSetProperty((CFWriteStreamRef)mOutputStream, kCFStreamPropertySSLSettings, (CFTypeRef)connectionSettings);
+//    
+//    NSLog(@"BrowserStackLog proxy Host- %@, port - %lu", proxyHost, (unsigned long)proxyPort);
+//    NSDictionary *proxySettings = @{NSStreamSOCKSProxyHostKey: proxyHost,
+//                                    NSStreamSOCKSProxyPortKey: @(proxyPort)};
+//    [mInputStream setProperty:proxySettings forKey:NSStreamSOCKSProxyConfigurationKey];
+//    [mOutputStream setProperty:proxySettings forKey:NSStreamSOCKSProxyConfigurationKey];
+//
+//    
+//    [mInputStream setDelegate:self];
+//    [mOutputStream setDelegate:self];
+//    
+//    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+//                            forMode:NSDefaultRunLoopMode];
+//    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+//                             forMode:NSDefaultRunLoopMode];
+//
+//#if TARGET_MAC
+//    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+//                            forMode:NSModalPanelRunLoopMode];
+//    [mInputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+//                            forMode:NSEventTrackingRunLoopMode];
+//    
+//    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+//                             forMode:NSModalPanelRunLoopMode];
+//    [mOutputStream scheduleInRunLoop:[NSRunLoop currentRunLoop]
+//                             forMode:NSEventTrackingRunLoopMode];
+//#endif
+//    
+//    [mInputStream open];
+//    [mOutputStream open];
+//    
+////    [mByteStreamFromServer setLength:0];
     
     return YES;
     
@@ -539,6 +588,8 @@ static int sSocketUniqueID = 1;
 }
 
 -(void) sendDataToServer:(NSData*) byteStream{
+    
+    NSLog(@"BrowserStackLog : sendDataToServer from Has Space Available..");
 	
 	if (byteStream != nil && mSocketState == SOCKET_PGHANDSHAKE_SUCCESS) 
 	{
@@ -596,6 +647,8 @@ static int sSocketUniqueID = 1;
 	}
     if(mOutputStream != nil) {
         NSLog(@"BrowserStackLog : mOutputStream is not nil");
+        NSLog(@"BrowserStackLog : mOutputStream Stream Status : %luu",(unsigned long) (unsigned long)[mOutputStream streamStatus]);
+        NSLog(@"BrowserStackLog : mOutputStream Stream Error : %@", [mOutputStream streamError]);
     } else
     {
         NSLog(@"BrowserStackLog : mOutputStream is nil");
@@ -605,14 +658,19 @@ static int sSocketUniqueID = 1;
         NSLog(@"BrowserStackLog : In [mOutputStream hasSpaceAvailable] is true...");
 		NSUInteger lengthOfMessage = [mHandShakeMessageByteStream length];		
 		NSUInteger actualSentlength = [mOutputStream write:(const uint8_t *)[mHandShakeMessageByteStream bytes] maxLength:lengthOfMessage];
-		
+        NSLog(@"BrowserStackLog : ActualLength %lu", (unsigned long)actualSentlength);
+        
 		if (actualSentlength == lengthOfMessage)
 		{
 			[mHandShakeMessageByteStream release];
 			mHandShakeMessageByteStream = nil;
 		}
 		//try resending the PGSHandShake message in the next NSStreamEventHasSpaceAvailable event.
-	}
+    }else {
+        
+        NSLog(@"BrowserStackLog : In [mOutputStream hasSpaceAvailable] is false...");
+
+    }
 	
 }
 
