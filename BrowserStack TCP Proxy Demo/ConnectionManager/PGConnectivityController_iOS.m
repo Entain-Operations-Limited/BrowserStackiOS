@@ -362,7 +362,7 @@ static int currentCSIndex = 0;
     [attributes setObject:@"IN" forKey:@"CID"];
     [attributes setObject:@"1" forKey:@"ARA_PROTOCOL_VERSION"];
     [attributes setObject:@"1" forKey:@"GRA_PROTOCOL_VERSION"];
-    [attributes setObject:@"en_LV" forKey:@"LOCALE"];
+    [attributes setObject:@"en_US" forKey:@"LOCALE"];
     [attributes setObject:@"en_US" forKey:@"SL"];
     
     [attributes setObject:@"0001-0676-0000-0000-0000-0000" forKey:@"CPU_SERIAL_NO"];

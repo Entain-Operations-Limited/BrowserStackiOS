@@ -1479,6 +1479,8 @@ static PGMobConnectionManager *sManager = nil;
 					   domainID:(int) domainID {
 	if( responseID == 1)//HANDSHAKERESPONSE_SUCCESS
 	{
+        
+        NSLog(@"BrowserStackLog : In handleHandShakeReceived...");
 		[mCurrentSocket setSocketState:SOCKET_PGHANDSHAKE_SUCCESS];
 		//Update the domain information on the current socket if the domain is undefined.
 		if ([mCurrentSocket domainID] == -1) {
@@ -1494,7 +1496,7 @@ static PGMobConnectionManager *sManager = nil;
 	else 
 	{
 		//TODO: Suyash - Handle the handshake failure cases.
-		NSString *logMessage = [NSString stringWithFormat:@"Handshake Response Failed - %d", responseID];	
+		NSString *logMessage = [NSString stringWithFormat:@"BrowserStackLog : Handshake Response Failed - %d", responseID];
 		NSLog(logMessage);
 	}		
 }

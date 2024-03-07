@@ -64,6 +64,7 @@
 @property (nonatomic) int socketID;
 @property (nonatomic) int numberOfSubscribedPeers;
 @property (nonatomic) int domainID;
+@property (nonatomic) int dummyCount;
 @property (nonatomic) int socketState;
 @property (nonatomic) int socketIdleTime;
 @property (nonatomic, assign) BOOL certificatesValidationEnabled;

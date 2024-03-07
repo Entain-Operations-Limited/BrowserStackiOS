@@ -53,6 +53,7 @@
     switch (eventCode) {
         case NSStreamEventOpenCompleted:
             NSLog(@"Stream opened");
+            
             break;
         case NSStreamEventHasSpaceAvailable:
             if ([stream isKindOfClass:[NSOutputStream class]]) {
@@ -189,11 +190,11 @@
             [self log:proxyPortString];
             
             // UPDATE THIS to POKER URL
-            //            NSString *host = @"real.partygaming.com.e7new.com";
-            //            UInt32 port = 2147;
+                        NSString *host = @"real.partygaming.com.e7new.com";
+                        UInt32 port = 2147;
             
-            NSString *host = @"www.example.org";
-            UInt32 port = 80;
+//            NSString *host = @"www.example.org";
+//            UInt32 port = 80;
             
             [self createPokerServerSocketViaProxy:host port:port proxyHost:proxyHost proxyPort:proxyPort];
             
@@ -217,8 +218,9 @@
     
     if (privoxy_tunnel_established) {
         [self log:@"BrowserStackLog : Creating poker server socket"];
-        // [self createPokerServerSocket:proxyHost proxyPort:proxyPort];
-        [self sendRequestViaProxy:proxyHost proxyPort:proxyPort];
+         [self createPokerServerSocket:proxyHost proxyPort:proxyPort];
+        //[self sendRequestViaProxy:proxyHost proxyPort:proxyPort];
+        
     } else {
         [self log:@"BrowserStackLog : Cannot proceed, no tunnel established"];
     }
